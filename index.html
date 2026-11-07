@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mathe-Stern</title>
+  <meta name="description" content="Mathe üben für die 5. Klasse – fröhlich, kostenlos und offline.">
+  <meta name="theme-color" content="#FFF4E6">
+  <meta name="color-scheme" content="light">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Mathe-Stern">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- Startbildschirm -->
+    <section id="screen-home" class="screen aktiv" aria-labelledby="titel">
+      <header class="home-kopf">
+        <div class="logo" aria-hidden="true">⭐</div>
+        <div>
+          <h1 id="titel">Mathe-Stern</h1>
+          <p class="gruss" id="gruss">Schön, dass du da bist!</p>
+        </div>
+      </header>
+
+      <div class="sterne-karte">
+        <span class="sterne-gross" aria-hidden="true">⭐</span>
+        <div>
+          <div class="sterne-zahl"><span id="home-sterne">0</span> Sterne</div>
+          <div class="sterne-text" id="home-sterne-text">Sammle Sterne mit jeder richtigen Antwort!</div>
+        </div>
+      </div>
+
+      <div class="haupt-knoepfe">
+        <button class="knopf knopf-gross knopf-lila" id="btn-ueben" type="button">
+          <span class="knopf-emoji" aria-hidden="true">🎯</span> Üben
+        </button>
+        <button class="knopf knopf-gross knopf-pink" id="btn-test" type="button">
+          <span class="knopf-emoji" aria-hidden="true">📝</span> Kurzer Test
+        </button>
+      </div>
+
+      <h2 class="abschnitt">Deine Themen</h2>
+      <div class="kacheln" id="home-themen"></div>
+
+      <h2 class="abschnitt">Deine Abzeichen <span class="abzeichen-zaehler" id="abzeichen-zaehler"></span></h2>
+      <div class="abzeichen-liste" id="home-abzeichen"></div>
+
+      <details class="einstellungen">
+        <summary>⚙️ Einstellungen</summary>
+        <div class="einstellungen-inhalt">
+          <label class="schalter-zeile">
+            <span>🔔 Töne</span>
+            <input type="checkbox" id="set-ton" class="schalter">
+          </label>
+          <button class="knopf knopf-klein knopf-hell" id="btn-reset" type="button">Fortschritt zurücksetzen</button>
+          <p class="klein-text">Dein Fortschritt wird nur auf diesem Gerät gespeichert.</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- Auswahl: Üben oder Test -->
+    <section id="screen-wahl" class="screen" aria-labelledby="wahl-titel">
+      <div class="leiste">
+        <button class="knopf-zurueck" type="button" data-zurueck aria-label="Zurück zur Startseite">←</button>
+        <h2 id="wahl-titel" class="leiste-titel">Thema wählen</h2>
+        <span class="leiste-platz"></span>
+      </div>
+      <p class="wahl-text" id="wahl-text"></p>
+      <div class="wahl-liste" id="wahl-liste"></div>
+    </section>
+
+    <!-- Aufgabe -->
+    <section id="screen-aufgabe" class="screen" aria-label="Aufgabe">
+      <div class="leiste">
+        <button class="knopf-zurueck" type="button" id="btn-aufgabe-zurueck" aria-label="Zurück">←</button>
+        <div class="leiste-mitte">
+          <div class="leiste-titel" id="auf-thema">Thema</div>
+          <div class="leiste-unter" id="auf-fortschritt"></div>
+        </div>
+        <div class="stern-chip" id="auf-sterne-chip"><span aria-hidden="true">⭐</span> <span id="auf-sterne">0</span></div>
+      </div>
+
+      <div class="aufgabe-inhalt" id="aufgabe-inhalt">
+        <div class="serie" id="auf-serie" aria-live="polite"></div>
+        <div class="frage-karte">
+          <p class="frage" id="auf-frage"></p>
+        </div>
+
+        <div class="rueckmeldung" id="auf-rueckmeldung" aria-live="polite"></div>
+      </div>
+
+      <div class="eingabe-bereich">
+        <div class="anzeige" id="auf-anzeige" aria-live="polite">
+          <span class="anzeige-wert" id="auf-wert"></span><span class="anzeige-cursor" aria-hidden="true"></span>
+          <span class="anzeige-einheit" id="auf-einheit"></span>
+        </div>
+        <div class="tastenfeld" id="tastenfeld" role="group" aria-label="Zahlen-Tastenfeld">
+          <button type="button" class="taste" data-taste="1">1</button>
+          <button type="button" class="taste" data-taste="2">2</button>
+          <button type="button" class="taste" data-taste="3">3</button>
+          <button type="button" class="taste taste-grau" data-taste="loeschen" aria-label="Löschen">⌫</button>
+          <button type="button" class="taste" data-taste="4">4</button>
+          <button type="button" class="taste" data-taste="5">5</button>
+          <button type="button" class="taste" data-taste="6">6</button>
+          <button type="button" class="taste taste-grau" data-taste="," aria-label="Komma">,</button>
+          <button type="button" class="taste" data-taste="7">7</button>
+          <button type="button" class="taste" data-taste="8">8</button>
+          <button type="button" class="taste" data-taste="9">9</button>
+          <button type="button" class="taste taste-grau" data-taste="/" id="taste-bruch" aria-label="Bruchstrich">/</button>
+          <button type="button" class="taste" data-taste="0">0</button>
+          <button type="button" class="taste taste-pruefen" data-taste="pruefen" id="taste-pruefen">Prüfen ✓</button>
+        </div>
+        <div class="optionen" id="optionen" role="group" aria-label="Antwortmöglichkeiten"></div>
+        <button type="button" class="knopf knopf-gross knopf-gruen knopf-weiter" id="btn-weiter">Weiter →</button>
+      </div>
+    </section>
+
+    <!-- Test-Ergebnis -->
+    <section id="screen-ergebnis" class="screen" aria-labelledby="erg-titel">
+      <div class="ergebnis-kopf">
+        <div class="ergebnis-emoji" aria-hidden="true">🎉</div>
+        <h2 id="erg-titel">Test geschafft!</h2>
+        <p class="ergebnis-sterne" id="erg-sterne"></p>
+      </div>
+      <div id="erg-gut" class="ergebnis-block"></div>
+      <div id="erg-ueben" class="ergebnis-block"></div>
+      <div class="ergebnis-knoepfe">
+        <button class="knopf knopf-gross knopf-pink" id="btn-erg-nochmal" type="button">📝 Noch ein Test</button>
+        <button class="knopf knopf-gross knopf-hell" id="btn-erg-start" type="button">🏠 Zur Startseite</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Pop-up / Dialog -->
+  <div class="popup-hintergrund" id="popup" hidden>
+    <div class="popup" role="dialog" aria-modal="true" aria-labelledby="popup-titel">
+      <div class="popup-emoji" id="popup-emoji" aria-hidden="true">🏅</div>
+      <h3 id="popup-titel"></h3>
+      <p id="popup-text"></p>
+      <div class="popup-knoepfe" id="popup-knoepfe"></div>
+    </div>
+  </div>
+
+  <div class="flug-stern" id="flug-stern" aria-hidden="true">⭐</div>
+  <canvas id="konfetti" aria-hidden="true"></canvas>
+
+  <noscript><p class="noscript">Bitte JavaScript einschalten, damit Mathe-Stern funktioniert.</p></noscript>
+
+  <script src="aufgaben.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
