@@ -47,6 +47,8 @@
         </button>
       </div>
 
+      <div class="einmaleins-box" id="home-einmaleins"></div>
+
       <h2 class="abschnitt">Deine Themen</h2>
       <div class="kacheln" id="home-themen"></div>
 
@@ -75,6 +77,20 @@
       </div>
       <p class="wahl-text" id="wahl-text"></p>
       <div class="wahl-liste" id="wahl-liste"></div>
+    </section>
+
+    <!-- Einmaleins: Reihen wählen -->
+    <section id="screen-einmaleins" class="screen" aria-labelledby="einmaleins-titel">
+      <div class="leiste">
+        <button class="knopf-zurueck" type="button" data-zurueck aria-label="Zurück zur Startseite">←</button>
+        <h2 id="einmaleins-titel" class="leiste-titel">Einmaleins üben</h2>
+        <span class="leiste-platz"></span>
+      </div>
+      <p class="wahl-text">Welche Reihen möchtest du üben? Tippe eine Reihe an – oder mehrere zum Mischen.</p>
+      <div class="reihen-knoepfe" id="reihen-knoepfe" role="group" aria-label="Einmaleins-Reihen"></div>
+      <button class="knopf knopf-hell reihen-alle" id="btn-reihen-alle" type="button" aria-pressed="false">🎲 Alle Reihen gemischt</button>
+      <p class="reihen-info" id="reihen-info" aria-live="polite"></p>
+      <button class="knopf knopf-gross knopf-gruen" id="btn-reihen-los" type="button">Los geht’s! 🚀</button>
     </section>
 
     <!-- Aufgabe -->

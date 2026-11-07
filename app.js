@@ -12,8 +12,11 @@
 
   var FARBEN = [
     ['#7C5CFF', '#EDE8FF'], ['#FF6FA5', '#FFE4EF'], ['#2FBF83', '#DDF7EA'],
-    ['#FF9F43', '#FFEBD6'], ['#3BA7F5', '#DDF0FF'], ['#E0B000', '#FFF4C7']
+    ['#FF9F43', '#FFEBD6'], ['#3BA7F5', '#DDF0FF'], ['#E0B000', '#FFF4C7'], ['#14B8A6', '#D5F5F0']
   ];
+  var EINMALEINS = 'einmaleins';
+  var REIHEN_KEY = 'matheStern.einmaleinsReihen';
+  var EINMALEINS_HELD = 20;
 
   // ---------- Texte ----------
   var LOB = [
@@ -53,7 +56,8 @@
     { id: 'entdecker', name: 'Entdeckerin', emoji: '🧭', text: 'Jedes Thema mindestens einmal ausprobiert.' },
     { id: 'fleiss50', name: 'Fleißbiene', emoji: '🐝', text: '50 Aufgaben gerechnet.' },
     { id: 'sterne100', name: 'Sternen-Sammlerin', emoji: '🌈', text: '100 Sterne gesammelt.' },
-    { id: 'fleiss200', name: 'Mathe-Superstar', emoji: '🦄', text: '200 Aufgaben gerechnet!' }
+    { id: 'fleiss200', name: 'Mathe-Superstar', emoji: '🦄', text: '200 Aufgaben gerechnet!' },
+    { id: 'einmaleins20', name: 'Einmaleins-Held', emoji: '🦸', text: EINMALEINS_HELD + ' Einmaleins-Aufgaben richtig gelöst.' }
   ];
   Object.keys(THEMA_ABZEICHEN).forEach(function (k) {
     var t = THEMA_ABZEICHEN[k];
@@ -83,6 +87,18 @@
     try { window.localStorage.setItem(SPEICHER_KEY, JSON.stringify(stand)); } catch (e) { /* ignorieren */ }
   }
   var stand = laden();
+
+  // Zuletzt gewählte Einmaleins-Reihen (eigener Key, alter Spielstand bleibt unberührt)
+  function reihenLaden() {
+    try {
+      var d = JSON.parse(window.localStorage.getItem(REIHEN_KEY) || '[]');
+      if (!Array.isArray(d)) return [];
+      return d.filter(function (n, i) { return typeof n === 'number' && n >= 1 && n <= 10 && d.indexOf(n) === i; });
+    } catch (e) { return []; }
+  }
+  function reihenSpeichern(r) {
+    try { window.localStorage.setItem(REIHEN_KEY, JSON.stringify(r)); } catch (e) { /* ignorieren */ }
+  }
 
   function statsFuer(id) {
     if (!stand.stats[id]) stand.stats[id] = { r: 0, g: 0 };
@@ -289,6 +305,7 @@
     if (stand.geloest >= 50) abzeichenGeben('fleiss50');
     if (stand.geloest >= 200) abzeichenGeben('fleiss200');
     if (stand.sterne >= 100) abzeichenGeben('sterne100');
+    if (stand.stats[EINMALEINS] && stand.stats[EINMALEINS].r >= EINMALEINS_HELD) abzeichenGeben('einmaleins20');
     var ta = THEMA_ABZEICHEN[themaId];
     if (ta && statsFuer(themaId).r >= 10) abzeichenGeben(ta.id);
     var l = themen();
@@ -312,9 +329,14 @@
       ? 'Sammle Sterne mit jeder richtigen Antwort!'
       : (stand.geloest + ' Aufgaben gerechnet – weiter so!');
 
+    var emBox = $('home-einmaleins');
+    emBox.innerHTML = '';
+    if (themen().some(function (t) { return t.id === EINMALEINS; })) emBox.appendChild(einmaleinsKarte());
+
     var box = $('home-themen');
     box.innerHTML = '';
     themen().forEach(function (t) {
+      if (t.id === EINMALEINS) return; // eigene, hervorgehobene Karte oben
       var st = stand.stats[t.id] || { r: 0, g: 0 };
       var farbe = themaFarbe(t.id);
       var k = el('button', 'kachel');
@@ -365,6 +387,84 @@
     $('set-ton').checked = !!stand.ton;
   }
 
+  function einmaleinsKarte() {
+    var st = stand.stats[EINMALEINS] || { r: 0, g: 0 };
+    var farbe = themaFarbe(EINMALEINS);
+    var k = el('button', 'kachel einmaleins-karte');
+    k.type = 'button';
+    k.id = 'btn-einmaleins';
+    k.style.setProperty('--farbe', farbe[0]);
+    k.style.background = 'linear-gradient(120deg, #fff 35%, ' + farbe[1] + ')';
+    k.setAttribute('aria-label', 'Einmaleins üben');
+    k.appendChild(el('span', 'kachel-emoji', themaInfo(EINMALEINS).emoji));
+    var txt = el('span', 'einmaleins-karte-text');
+    txt.appendChild(el('span', 'kachel-name', 'Einmaleins üben'));
+    txt.appendChild(el('span', 'kachel-info', st.g === 0 ? 'Wähle deine Reihen – 1er bis 10er' : (st.r === 0 ? 'Schon ausprobiert' : st.r + ' richtig gelöst')));
+    var balken = el('span', 'balken');
+    var fuell = el('span');
+    var anteil = Math.min(1, (st.r || 0) / 30);
+    balken.appendChild(fuell);
+    txt.appendChild(balken);
+    k.appendChild(txt);
+    requestAnimationFrame(function () { fuell.style.width = Math.max(st.g ? 6 : 0, Math.round(anteil * 100)) + '%'; });
+    k.addEventListener('click', function () { audio(); zeigeEinmaleinsWahl(); });
+    return k;
+  }
+
+  // ---------- Einmaleins: Reihen wählen ----------
+  var reihenWahl = reihenLaden();
+  function reihenText(r) {
+    if (!r || !r.length || r.length === 10) return 'alle Reihen gemischt';
+    if (r.length === 1) return r[0] + 'er-Reihe';
+    return r.slice().sort(function (a, b) { return a - b; }).map(function (n) { return n + 'er'; }).join(', ') + ' gemischt';
+  }
+  function zeigeEinmaleinsWahl() {
+    zeichneReihen();
+    zeige('einmaleins');
+  }
+  function zeichneReihen() {
+    var box = $('reihen-knoepfe');
+    if (!box.children.length) {
+      for (var n = 1; n <= 10; n++) {
+        (function (n) {
+          var b = el('button', 'reihe-knopf', n + 'er');
+          b.type = 'button';
+          b.setAttribute('data-reihe', n);
+          b.setAttribute('aria-label', n + 'er-Reihe');
+          b.addEventListener('click', function () {
+            var i = reihenWahl.indexOf(n);
+            if (i >= 0) reihenWahl.splice(i, 1); else reihenWahl.push(n);
+            reihenSpeichern(reihenWahl);
+            zeichneReihen();
+          });
+          box.appendChild(b);
+        })(n);
+      }
+    }
+    Array.prototype.forEach.call(box.children, function (b) {
+      var an = reihenWahl.indexOf(+b.getAttribute('data-reihe')) >= 0;
+      b.classList.toggle('an', an);
+      b.setAttribute('aria-pressed', an ? 'true' : 'false');
+    });
+    var alle = reihenWahl.length === 10;
+    $('btn-reihen-alle').classList.toggle('an', alle);
+    $('btn-reihen-alle').setAttribute('aria-pressed', alle ? 'true' : 'false');
+    $('btn-reihen-los').disabled = !reihenWahl.length;
+    $('reihen-info').textContent = reihenWahl.length
+      ? 'Du übst: ' + reihenText(reihenWahl)
+      : 'Tippe eine oder mehrere Reihen an.';
+  }
+  $('btn-reihen-alle').addEventListener('click', function () {
+    reihenWahl = reihenWahl.length === 10 ? [] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    reihenSpeichern(reihenWahl);
+    zeichneReihen();
+  });
+  $('btn-reihen-los').addEventListener('click', function () {
+    if (!reihenWahl.length) return;
+    audio();
+    starteUeben(EINMALEINS, reihenWahl.slice());
+  });
+
   // ---------- Auswahl ----------
   function zeigeWahl(modus) {
     var liste = $('wahl-liste');
@@ -377,7 +477,11 @@
       $('wahl-titel').textContent = 'Üben';
       $('wahl-text').textContent = 'Wähle ein Thema. Du kannst so lange üben, wie du möchtest.';
     }
-    themen().forEach(function (t) {
+    var reihe = themen().slice();
+    if (modus !== 'test') { // Einmaleins beim Üben ganz oben
+      reihe.sort(function (a, b) { return (b.id === EINMALEINS) - (a.id === EINMALEINS); });
+    }
+    reihe.forEach(function (t) {
       liste.appendChild(wahlEintrag(t.emoji, t.name, t.beschreibung || '', t.id, function () {
         if (modus === 'test') starteTest(t.id); else starteUeben(t.id);
       }));
@@ -408,6 +512,7 @@
     ergebnisse: {},     // Test: themaId -> {r, g}
     testSterne: 0,
     serie: 0,
+    reihen: null,       // Einmaleins: gewählte Reihen beim Üben
     aufgabe: null,
     versuche: 0,
     eingabe: '',
@@ -415,9 +520,11 @@
     rechenwegGezeigt: false
   };
 
-  function starteUeben(themaId) {
+  function starteUeben(themaId, reihen) {
+    if (themaId === EINMALEINS && !reihen) { zeigeEinmaleinsWahl(); return; }
     sitzung.modus = 'ueben';
     sitzung.themaId = themaId;
+    sitzung.reihen = themaId === EINMALEINS ? reihen : null;
     sitzung.serie = 0;
     zeige('aufgabe');
     neueAufgabe();
@@ -445,7 +552,9 @@
   function neueAufgabe() {
     var themaId = sitzung.modus === 'test' ? sitzung.plan[sitzung.index] : sitzung.themaId;
     var aufgabe = null;
-    try { aufgabe = A.erzeuge(themaId); } catch (e) { aufgabe = null; }
+    var einmaleinsOpt = (themaId === EINMALEINS && sitzung.modus === 'ueben' && sitzung.reihen)
+      ? { reihen: sitzung.reihen } : undefined;
+    try { aufgabe = A.erzeuge(themaId, einmaleinsOpt); } catch (e) { aufgabe = null; }
     if (!aufgabe) {
       popup({ emoji: '🙈', titel: 'Hoppla!', text: 'Diese Aufgabe konnte nicht erstellt werden.', knoepfe: [{ text: 'Zur Startseite', aktion: function () { zeige('home'); } }] });
       return;
@@ -462,7 +571,7 @@
     $('auf-thema').textContent = t.emoji + ' ' + t.name;
     $('auf-fortschritt').textContent = sitzung.modus === 'test'
       ? 'Aufgabe ' + (sitzung.index + 1) + ' von ' + sitzung.plan.length
-      : 'Üben – so lange du magst';
+      : (einmaleinsOpt ? 'Üben – ' + reihenText(sitzung.reihen) : 'Üben – so lange du magst');
     $('auf-sterne').textContent = stand.sterne;
 
     var screen = $('screen-aufgabe');
@@ -759,6 +868,8 @@
           { text: 'Zur Startseite', klasse: 'knopf-hell', aktion: function () { zeige('home'); } }
         ]
       });
+    } else if (sitzung.modus === 'ueben' && sitzung.themaId === EINMALEINS) {
+      zeigeEinmaleinsWahl();
     } else {
       zeige('home');
     }

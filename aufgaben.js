@@ -2,7 +2,8 @@
  * Plain JavaScript, keine Bibliotheken. Stellt window.MatheAufgaben bereit.
  * Schnittstelle:
  *   MatheAufgaben.themen  – Liste der Themen {id, name, emoji, beschreibung}
- *   MatheAufgaben.erzeuge(themaId) – liefert eine zufällige Aufgabe
+ *   MatheAufgaben.erzeuge(themaId[, optionen]) – liefert eine zufällige Aufgabe
+ *     (optionen nur bei 'einmaleins': {reihen: [1..10]})
  *   MatheAufgaben.pruefe(aufgabe, eingabe) – true, wenn die Eingabe richtig ist
  */
 (function () {
@@ -769,6 +770,109 @@
       s.einheit ? { einheit: s.einheit } : null);
   }
 
+  /* ---------- Thema: Einmaleins ---------- */
+
+  var ALLE_REIHEN = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  var letzteEinmaleinsFrage = '';
+
+  function gueltigeReihen(optionen) {
+    var roh = optionen && Array.isArray(optionen.reihen) ? optionen.reihen : [];
+    var r = [];
+    roh.forEach(function (x) {
+      var n = parseInt(x, 10);
+      if (n >= 1 && n <= 10 && r.indexOf(n) < 0) r.push(n);
+    });
+    return r.length ? r : ALLE_REIHEN;
+  }
+
+  // Rechenweg für m · n (m-mal die n) über bekannte Kernaufgaben
+  function malWeg(m, n) {
+    var p = m * n;
+    if (m === 1) return ['Mal 1 heißt: Die Zahl wird genau einmal genommen.', '1 · ' + n + ' = ' + p + '.'];
+    if (m === 2) return ['Mal 2 heißt verdoppeln.', n + ' + ' + n + ' = ' + p + '.'];
+    if (m === 10) return ['Mal 10 heißt: Hänge eine Null an die ' + n + ' an.', '10 · ' + n + ' = ' + p + '.'];
+    if (m === 5) return ['Mal 5 ist die Hälfte von mal 10.', '10 · ' + n + ' = ' + (10 * n) + '.',
+      'Die Hälfte von ' + (10 * n) + ' ist ' + p + '.'];
+    if (m === 3) return ['Rechne 2 · ' + n + ' und nimm noch einmal ' + n + ' dazu.', '2 · ' + n + ' = ' + (2 * n) + '.',
+      (2 * n) + ' + ' + n + ' = ' + p + '.'];
+    if (m === 4) return ['Mal 4 heißt: zweimal verdoppeln.', '2 · ' + n + ' = ' + (2 * n) + '.',
+      (2 * n) + ' + ' + (2 * n) + ' = ' + p + '.'];
+    if (m === 6 || m === 7) return ['Zerlege: ' + m + ' · ' + n + ' = 5 · ' + n + ' + ' + (m - 5) + ' · ' + n + '.',
+      '5 · ' + n + ' = ' + (5 * n) + ' und ' + (m - 5) + ' · ' + n + ' = ' + ((m - 5) * n) + '.',
+      (5 * n) + ' + ' + ((m - 5) * n) + ' = ' + p + '.'];
+    // m = 8 oder 9: von 10 · n aus rückwärts
+    return ['Rechne ' + m + ' · ' + n + ' = 10 · ' + n + ' − ' + (10 - m) + ' · ' + n + '.',
+      '10 · ' + n + ' = ' + (10 * n) + ' und ' + (10 - m) + ' · ' + n + ' = ' + ((10 - m) * n) + '.',
+      (10 * n) + ' − ' + ((10 - m) * n) + ' = ' + p + '.'];
+  }
+  var LEICHT = [1, 2, 10, 5];
+  function leichtigkeit(m) { var i = LEICHT.indexOf(m); return i < 0 ? 9 : i; }
+
+  function einmaleinsAufgabe(reihen) {
+    var T = 'einmaleins';
+    var r = pick(reihen), k = rnd(1, 10), p = r * k;
+    var art = Math.random();
+    var a;
+    if (art < 0.7) { // Mal-Aufgabe
+      var vertauscht = Math.random() < 0.4;
+      var frage = vertauscht ? k + ' · ' + r : r + ' · ' + k;
+      // Den leichteren Faktor als „wie oft“ (m) nehmen; bei anderer Reihenfolge die Tauschaufgabe erklären
+      var lr = leichtigkeit(r), lk = leichtigkeit(k);
+      var m = lr < lk ? r : (lk < lr ? k : (vertauscht ? k : r)), n = m === r ? k : r;
+      var weg = malWeg(m, n);
+      if (frage !== m + ' · ' + n) weg = ['Tauschaufgabe: ' + frage + ' ist dasselbe wie ' + m + ' · ' + n + '.'].concat(weg);
+      var tipp;
+      var leicht = Math.min(r, k) === 1 ? 1 : (r === 10 || k === 10 ? 10 : (r === 2 || k === 2 ? 2 : (r === 5 || k === 5 ? 5 : 0)));
+      if (leicht === 1) tipp = 'Mal 1 verändert eine Zahl nicht.';
+      else if (leicht === 10) tipp = 'Bei mal 10 hängst du einfach eine Null an.';
+      else if (leicht === 2) tipp = 'Mal 2 heißt verdoppeln.';
+      else if (leicht === 5) tipp = 'Mal 5 ist die Hälfte von mal 10.';
+      else tipp = 'Nutze eine Kernaufgabe, die du schon kennst – zum Beispiel 5 · ' + r + ' oder 10 · ' + r + ' – und rechne von dort weiter.';
+      a = aufgabe(T, 'Was ist ' + frage + '?', 'zahl', p, weg, tipp);
+    } else {
+      var hilfe;
+      if (k <= 4) {
+        var schritte = [];
+        for (var i = 1; i <= k; i++) schritte.push(i * r);
+        hilfe = 'Zähle in ' + r + 'er-Schritten: ' + schritte.join(', ') + '. Das sind ' + k + ' Schritte.';
+      } else if (k === 5 || k === 10) {
+        hilfe = 'Das ist eine Kernaufgabe: ' + k + ' · ' + r + ' = ' + p + '.';
+      } else if (k < 8) {
+        hilfe = 'Starte bei 5 · ' + r + ' = ' + (5 * r) + ' und nimm noch ' + (k - 5) + ' · ' + r + ' dazu: ' +
+          (5 * r) + ' + ' + ((k - 5) * r) + ' = ' + p + '. Das sind ' + k + ' · ' + r + '.';
+      } else {
+        hilfe = 'Starte bei 10 · ' + r + ' = ' + (10 * r) + ' und nimm ' + (10 - k) + ' · ' + r + ' weg: ' +
+          (10 * r) + ' − ' + ((10 - k) * r) + ' = ' + p + '. Das sind ' + k + ' · ' + r + '.';
+      }
+      if (art < 0.85) { // Geteilt-Umkehraufgabe
+        a = aufgabe(T, 'Was ist ' + p + ' : ' + r + '?', 'zahl', k, [
+          'Geteilt ist die Umkehrung von Mal: Welche Zahl mal ' + r + ' ergibt ' + p + '?',
+          hilfe,
+          'Also ist ' + p + ' : ' + r + ' = ' + k + '.'
+        ], 'Denk an die ' + r + 'er-Reihe: Wie oft passt die ' + r + ' in die ' + p + '?');
+      } else { // Lücke
+        var links = Math.random() < 0.5;
+        var luecke = links ? '☐ · ' + r + ' = ' + p : r + ' · ☐ = ' + p;
+        a = aufgabe(T, 'Welche Zahl gehört in das Kästchen? ' + luecke, 'zahl', k, [
+          'Rechne rückwärts mit der Umkehraufgabe: ' + p + ' : ' + r + '.',
+          hilfe,
+          'Probe: ' + (links ? k + ' · ' + r : r + ' · ' + k) + ' = ' + p + '. Stimmt!'
+        ], 'Gehe die ' + r + 'er-Reihe durch, bis du bei ' + p + ' ankommst.');
+      }
+    }
+    a.reihe = r;
+    return a;
+  }
+
+  function einmaleins(optionen) {
+    var reihen = gueltigeReihen(optionen);
+    var a = einmaleinsAufgabe(reihen);
+    // Möglichst nicht dieselbe Aufgabe zweimal direkt hintereinander
+    for (var v = 0; v < 30 && a.frage === letzteEinmaleinsFrage; v++) a = einmaleinsAufgabe(reihen);
+    letzteEinmaleinsFrage = a.frage;
+    return a;
+  }
+
   /* ---------- Antworten prüfen ---------- */
 
   // Wandelt eine Zahl-Eingabe in eine Zahl um (NaN, wenn ungültig).
@@ -843,7 +947,8 @@
     schriftlich: schriftlich,
     brueche: brueche,
     masseinheiten: masseinheiten,
-    sachaufgaben: sachaufgaben
+    sachaufgaben: sachaufgaben,
+    einmaleins: einmaleins
   };
 
   window.MatheAufgaben = {
@@ -853,12 +958,14 @@
       { id: 'schriftlich', name: 'Schriftlich rechnen', emoji: '✏️', beschreibung: 'Plus, Minus, Mal und Geteilt Stelle für Stelle' },
       { id: 'brueche', name: 'Brüche', emoji: '🍕', beschreibung: 'Bruchteile, Brüche addieren, vergleichen und kürzen' },
       { id: 'masseinheiten', name: 'Maßeinheiten', emoji: '📏', beschreibung: 'Längen, Gewichte, Zeit und Geld umrechnen' },
-      { id: 'sachaufgaben', name: 'Sachaufgaben', emoji: '📖', beschreibung: 'Kleine Rechengeschichten aus dem Alltag' }
+      { id: 'sachaufgaben', name: 'Sachaufgaben', emoji: '📖', beschreibung: 'Kleine Rechengeschichten aus dem Alltag' },
+      { id: 'einmaleins', name: 'Einmaleins', emoji: '🔢', beschreibung: 'Die Reihen 1 bis 10: Mal, Geteilt und Lücken' }
     ],
-    erzeuge: function (themaId) {
+    // optionen nur für 'einmaleins': { reihen: [1..10] } (Standard: alle Reihen)
+    erzeuge: function (themaId, optionen) {
       var gen = GENERATOREN[themaId];
       if (!gen) throw new Error('Unbekanntes Thema: ' + themaId);
-      return gen();
+      return themaId === 'einmaleins' ? gen(optionen) : gen();
     },
     pruefe: pruefe
   };

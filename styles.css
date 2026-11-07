@@ -319,6 +319,46 @@ h1 {
 }
 .stern-chip.hupf { animation: hupf .5s ease; }
 
+/* ---------- Einmaleins ---------- */
+.einmaleins-box { margin-top: 14px; }
+.einmaleins-karte {
+  width: 100%;
+  min-height: 96px;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  border: 3px solid var(--farbe, var(--lila));
+}
+.einmaleins-karte .kachel-emoji { font-size: 40px; }
+.einmaleins-karte .kachel-name { font-size: 20px; }
+.einmaleins-karte-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.reihen-knoepfe {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.reihe-knopf {
+  min-height: 64px;
+  min-width: 44px;
+  padding: 0;
+  border: 3px solid transparent;
+  border-radius: 18px;
+  background: var(--karte);
+  box-shadow: var(--schatten);
+  font-family: inherit;
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--text);
+  transition: transform .08s ease, background .15s;
+}
+.reihe-knopf:active { transform: scale(.95); }
+.reihe-knopf.an { background: #14B8A6; border-color: #0E8F81; color: #fff; }
+.reihen-alle { width: 100%; min-height: 56px; font-size: 18px; border: 3px solid transparent; }
+.reihen-alle.an { background: #D5F5F0; border-color: #14B8A6; }
+.reihen-info { margin: 14px 4px; min-height: 22px; font-weight: 700; color: var(--text-leise); text-align: center; }
+#btn-reihen-los:disabled { opacity: .45; box-shadow: none; }
+
 /* ---------- Auswahl ---------- */
 .wahl-text { margin: 0 4px 14px; color: var(--text-leise); }
 .wahl-liste { display: grid; gap: 12px; }

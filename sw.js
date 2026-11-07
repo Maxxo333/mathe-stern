@@ -1,6 +1,6 @@
 /* Mathe-Stern – Service Worker (offline, cache-first)
    Bei Änderungen an Dateien die Versionsnummer erhöhen. */
-var CACHE = 'mathe-stern-v2';
+var CACHE = 'mathe-stern-v3';
 var DATEIEN = [
   './',
   './index.html',
