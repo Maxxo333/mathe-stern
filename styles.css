@@ -44,8 +44,18 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Kein "Nach-unten-ziehen zum Neuladen" und kein Text-Markieren per langem Druck
+   (in der Android-App würde sonst das Browser-Menü erscheinen) */
+html, body {
+  overscroll-behavior: none;
+}
 body {
-  overscroll-behavior-y: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.aufgabe-inhalt {
+  overscroll-behavior: contain;
 }
 
 button, input, summary {
@@ -155,7 +165,7 @@ h1 {
 
 .haupt-knoepfe {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
   margin-bottom: 8px;
 }
@@ -170,7 +180,7 @@ h1 {
 
 .kacheln {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
 }
 .kachel {
@@ -180,6 +190,9 @@ h1 {
   align-items: flex-start;
   gap: 4px;
   min-height: 118px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  hyphens: auto;
   padding: 14px;
   border: 0;
   border-radius: var(--rund);
@@ -210,7 +223,7 @@ h1 {
 
 .abzeichen-liste {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 .abzeichen {
@@ -562,7 +575,7 @@ h1 {
 
 .optionen {
   display: none;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
 }
 #screen-aufgabe.auswahl-modus .optionen { display: grid; }
@@ -700,7 +713,7 @@ h1 {
   .frage { font-size: 21px; }
 }
 @media (max-width: 359px) {
-  .abzeichen-liste { grid-template-columns: repeat(3, 1fr); }
+  .abzeichen-liste { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .haupt-knoepfe .knopf-gross { font-size: 18px; }
 }
 
@@ -715,3 +728,6 @@ h1 {
   .anzeige-cursor { animation: none; }
   .flug-stern { display: none; }
 }
+
+/* Link zur Datenschutzseite in den Einstellungen */
+.einstellungen a { color: var(--lila-dunkel); font-weight: 700; }

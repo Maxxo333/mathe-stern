@@ -1,25 +1,34 @@
 /* Mathe-Stern – Service Worker (offline, cache-first)
    Bei Änderungen an Dateien die Versionsnummer erhöhen. */
-var CACHE = 'mathe-stern-v3';
-var DATEIEN = [
+var CACHE = 'mathe-stern-v4';
+// Ohne diese Dateien funktioniert die App nicht – schlägt eine fehl, wird
+// die Installation wiederholt, statt halb offline zu sein.
+var KERN = [
   './',
   './index.html',
   './styles.css',
   './aufgaben.js',
-  './app.js',
+  './app.js'
+];
+var EXTRA = [
+  './datenschutz.html',
   './manifest.webmanifest',
   './icons/icon-180.png',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png'
 ];
 
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE).then(function (cache) {
-      // Einzeln cachen, damit eine fehlende Datei nicht alles verhindert
-      return Promise.all(DATEIEN.map(function (url) {
-        return cache.add(new Request(url, { cache: 'reload' })).catch(function () {});
-      }));
+      var neu = function (url) { return new Request(url, { cache: 'reload' }); };
+      return cache.addAll(KERN.map(neu)).then(function () {
+        // Zusatzdateien einzeln, eine fehlende verhindert nicht alles
+        return Promise.all(EXTRA.map(function (url) {
+          return cache.add(neu(url)).catch(function () {});
+        }));
+      });
     }).then(function () { return self.skipWaiting(); })
   );
 });

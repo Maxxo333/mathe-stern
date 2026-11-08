@@ -9,6 +9,10 @@
   var GUT_QUOTE = 0.7;
   var MAX_EINGABE = 12;
   var weniBewegung = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  // Läuft die Seite in der Android-App (Capacitor)? Dann liegen alle Dateien schon
+  // in der App: kein Service Worker (sonst nach Updates alte Dateien aus dem Cache)
+  // und eigene Behandlung der Zurück-Taste.
+  var istAndroidApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 
   var FARBEN = [
     ['#7C5CFF', '#EDE8FF'], ['#FF6FA5', '#FFE4EF'], ['#2FBF83', '#DDF7EA'],
@@ -254,8 +258,9 @@
   }
   function naechstesPopup() {
     var d = popupWarteschlange.shift();
-    if (!d) { popupOffen = false; return; }
+    if (!d) { popupOffen = false; zurueckSchutz(); return; }
     popupOffen = true;
+    zurueckSchutz();
     $('popup-emoji').textContent = d.emoji || '🏅';
     $('popup-titel').textContent = d.titel || '';
     $('popup-text').textContent = d.text || '';
@@ -317,17 +322,65 @@
     var alle = document.querySelectorAll('.screen');
     for (var i = 0; i < alle.length; i++) alle[i].classList.remove('aktiv');
     $('screen-' + name).classList.add('aktiv');
+    aktuellerScreen = name;
     window.scrollTo(0, 0);
     if (name === 'home') zeichneStart();
+    zurueckSchutz();
   }
+
+  // ---------- Zurück-Taste (Android) / Zurück im Browser ----------
+  // Solange ein Pop-up offen ist oder nicht die Startseite angezeigt wird,
+  // liegt genau ein zusätzlicher Verlaufseintrag ("Schutz") vor uns. Die
+  // Zurück-Taste entfernt ihn – das fangen wir ab und gehen in der App zurück,
+  // statt sie zu schließen. Auf der Startseite beendet "Zurück" die App.
+  var aktuellerScreen = 'home';
+  var schutzEntferntGerade = false;
+  function hatSchutz() { return !!(history.state && history.state.matheSternSchutz); }
+  // Ein Schritt "zurück" innerhalb der App. Gibt false zurück, wenn wir schon
+  // auf der Startseite sind (dann darf die App geschlossen werden).
+  function zurueckAktion() {
+    if (popupOffen && !$('popup').hidden) {
+      // Pop-up: wie der erste (sichere) Knopf, z. B. „Weiterrechnen“ oder „Nein, behalten“
+      var erster = $('popup-knoepfe').querySelector('button');
+      if (erster) erster.click();
+      return true;
+    }
+    if (aktuellerScreen === 'aufgabe') { $('btn-aufgabe-zurueck').click(); return true; }
+    if (aktuellerScreen !== 'home') { zeige('home'); return true; }
+    return false;
+  }
+  function zurueckSchutz() {
+    // In der Android-App übernimmt der backButton-Listener (unten) – kein Verlauf nötig
+    if (istAndroidApp) return;
+    if (!window.history || !history.pushState || schutzEntferntGerade) return;
+    var noetig = popupOffen || aktuellerScreen !== 'home';
+    if (noetig && !hatSchutz()) {
+      history.pushState({ matheSternSchutz: true }, '');
+    } else if (!noetig && hatSchutz()) {
+      schutzEntferntGerade = true;
+      history.back();
+    }
+  }
+  window.addEventListener('popstate', function () {
+    if (schutzEntferntGerade) {
+      // Wir haben den Schutz selbst entfernt – nur neu bewerten.
+      schutzEntferntGerade = false;
+      zurueckSchutz();
+      return;
+    }
+    zurueckAktion();
+    // Falls wir noch nicht auf der Startseite sind, Schutz wiederherstellen
+    setTimeout(zurueckSchutz, 0);
+  });
 
   // ---------- Startseite ----------
   function zeichneStart() {
     $('gruss').textContent = zufall(GRUESSE);
     $('home-sterne').textContent = stand.sterne;
+    $('home-sterne-wort').textContent = stand.sterne === 1 ? 'Stern' : 'Sterne';
     $('home-sterne-text').textContent = stand.sterne === 0
       ? 'Sammle Sterne mit jeder richtigen Antwort!'
-      : (stand.geloest + ' Aufgaben gerechnet – weiter so!');
+      : (stand.geloest + (stand.geloest === 1 ? ' Aufgabe' : ' Aufgaben') + ' gerechnet – weiter so!');
 
     var emBox = $('home-einmaleins');
     emBox.innerHTML = '';
@@ -936,7 +989,27 @@
   }
   zeichneStart();
 
-  if ('serviceWorker' in navigator) {
+  // Android-Zurück-Taste: direkt in der App einen Schritt zurück; auf der
+  // Startseite wird die App geschlossen. (Ohne Listener würde das App-Plugin
+  // den Tastendruck auf der Startseite verschlucken.)
+  try {
+    var appPlugin = istAndroidApp && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (appPlugin && appPlugin.addListener) {
+      appPlugin.addListener('backButton', function () {
+        if (!zurueckAktion()) appPlugin.exitApp();
+      });
+    }
+  } catch (e) { /* ignorieren */ }
+
+  // Übrig gebliebenen Schutz-Eintrag nach einem Neuladen entfernen
+  if (hatSchutz()) { schutzEntferntGerade = true; history.back(); }
+
+  // Töne anhalten, wenn die App in den Hintergrund geht
+  document.addEventListener('visibilitychange', function () {
+    try { if (document.hidden && audioCtx && audioCtx.state === 'running') audioCtx.suspend(); } catch (e) { /* ignorieren */ }
+  });
+
+  if ('serviceWorker' in navigator && !istAndroidApp) {
     window.addEventListener('load', function () {
       try {
         navigator.serviceWorker.register('sw.js').catch(function () { /* ignorieren */ });
